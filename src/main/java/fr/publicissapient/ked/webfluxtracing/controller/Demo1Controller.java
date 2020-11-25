@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.stream.IntStream;
 
@@ -27,22 +29,29 @@ public class Demo1Controller {
     Mono<ResponseEntity<Object>> accessTest1(@RequestParam(name = "id") Integer id, ServerWebExchange serverWebExchange) {
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("correlationId", id.toString())) {
             logger.info("Received query for id {}", id);
-            var response = performCount(id)
+            return performCount(id)
             .map(c -> ResponseEntity.ok().build());
-
-            logger.info("TADAM");
-            return response;
         }
+
     }
 
     private Mono<Integer> performCount(Integer id) {
         return Mono.just(id)
                 .map(i -> {
-                    var count = IntStream.range(0, 100000)
+                    var count = IntStream.range(0, 10000)
                             .boxed()
                             .reduce(0, Integer::sum);
                     logger.info("Got count {} for id: {}", count, i);
                     return count;
-                });
+                }).subscribeOn(Schedulers.boundedElastic());
     }
+
+    Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id, ServerWebExchange serverWebExchange) {
+        MDC.put("correlationId", id.toString());
+
+        logger.info("Received query for id {}", id);
+        return performCount(id)
+                .map(c -> ResponseEntity.ok().build());
+    }
+
 }
