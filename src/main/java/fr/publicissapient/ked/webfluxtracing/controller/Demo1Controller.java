@@ -22,8 +22,6 @@ public class Demo1Controller {
         this.dummyWebClient = dummyWebClient;
     }
 
-    @RequestMapping(value = "/test",
-            method = RequestMethod.GET)
     Mono<ResponseEntity<Object>> accessTest1(@RequestParam(name = "id") Integer id) {
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("correlationId", id.toString())) {
             logger.info("Received query for id {}", id);
@@ -43,11 +41,13 @@ public class Demo1Controller {
                 });
     }
 
+    @RequestMapping(value = "/test",
+    method = RequestMethod.GET)
     Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id) {
         MDC.put("correlationId", id.toString());
 
         logger.info("Received query for id {}", id);
-        return performCount(id)
+        return performQuery(id)
                 .map(c -> ResponseEntity.ok().build())
                 .doAfterTerminate(MDC::clear);
     }
