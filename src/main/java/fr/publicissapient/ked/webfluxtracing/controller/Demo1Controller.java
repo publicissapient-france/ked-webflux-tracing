@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.stream.IntStream;
@@ -24,8 +23,8 @@ public class Demo1Controller {
     }
 
     @RequestMapping(value = "/test",
-    method = RequestMethod.GET)
-    Mono<ResponseEntity<Object>> accessTest1(@RequestParam(name = "id") Integer id, ServerWebExchange serverWebExchange) {
+            method = RequestMethod.GET)
+    Mono<ResponseEntity<Object>> accessTest1(@RequestParam(name = "id") Integer id) {
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("correlationId", id.toString())) {
             logger.info("Received query for id {}", id);
             return performCount(id)
@@ -44,13 +43,13 @@ public class Demo1Controller {
                 });
     }
 
-    Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id, ServerWebExchange serverWebExchange) {
+    Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id) {
         MDC.put("correlationId", id.toString());
 
         logger.info("Received query for id {}", id);
         return performCount(id)
                 .map(c -> ResponseEntity.ok().build())
-                .doAfterTerminate(() -> MDC.clear());
+                .doAfterTerminate(MDC::clear);
     }
 
     private Mono<String> performQuery(Integer id) {

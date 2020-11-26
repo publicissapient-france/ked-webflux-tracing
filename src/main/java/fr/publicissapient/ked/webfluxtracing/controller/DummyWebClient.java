@@ -2,6 +2,7 @@ package fr.publicissapient.ked.webfluxtracing.controller;
 
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -18,14 +19,15 @@ public class DummyWebClient {
                 .build();
     }
 
-
     public Mono<String> performRequest(Integer id) {
         return webClient.get().uri("/")
-            .exchange()
-            .map(resp -> {
-                logger.info("Got Response for id: {}", id);
-                return resp;
-            })
-            .map(resp -> "");
+                .retrieve()
+                .bodyToMono(ClientResponse.class)
+                .map(clientResponse -> {
+                            logger.info("Got Response for id: {}", id);
+                            return clientResponse;
+                        }
+                )
+                .map(resp -> "");
     }
 }
