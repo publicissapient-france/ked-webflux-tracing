@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.stream.IntStream;
 
@@ -18,10 +16,11 @@ import java.util.stream.IntStream;
 public class Demo1Controller {
 
     private final Logger logger;
+    private final DummyWebClient dummyWebClient;
 
-    Demo1Controller(Logger logger) {
-
+    Demo1Controller(Logger logger, DummyWebClient dummyWebClient) {
         this.logger = logger;
+        this.dummyWebClient = dummyWebClient;
     }
 
     @RequestMapping(value = "/test",
@@ -30,9 +29,8 @@ public class Demo1Controller {
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("correlationId", id.toString())) {
             logger.info("Received query for id {}", id);
             return performCount(id)
-            .map(c -> ResponseEntity.ok().build());
+                    .map(c -> ResponseEntity.ok().build());
         }
-
     }
 
     private Mono<Integer> performCount(Integer id) {
@@ -43,7 +41,7 @@ public class Demo1Controller {
                             .reduce(0, Integer::sum);
                     logger.info("Got count {} for id: {}", count, i);
                     return count;
-                }).subscribeOn(Schedulers.boundedElastic());
+                });
     }
 
     Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id, ServerWebExchange serverWebExchange) {
@@ -51,7 +49,12 @@ public class Demo1Controller {
 
         logger.info("Received query for id {}", id);
         return performCount(id)
-                .map(c -> ResponseEntity.ok().build());
+                .map(c -> ResponseEntity.ok().build())
+                .doAfterTerminate(() -> MDC.clear());
+    }
+
+    private Mono<String> performQuery(Integer id) {
+        return dummyWebClient.performRequest(id);
     }
 
 }
