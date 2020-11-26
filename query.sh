@@ -1,0 +1,2 @@
+#/bin/bash
+curl http://localhost:8080/test\?id\=1 & curl http://localhost:8080/test\?id\=2 & curl http://localhost:8080/test\?id\=3 & curl http://localhost:8080/test\?id\=4 & curl http://localhost:8080/test\?id\=5 & curl http://localhost:8080/test\?id\=6 & curl http://localhost:8080/test\?id\=7 & curl http://localhost:8080/test\?id\=8 & curl http://localhost:8080/test\?id\=9 & curl http://localhost:8080/test\?id\=10
