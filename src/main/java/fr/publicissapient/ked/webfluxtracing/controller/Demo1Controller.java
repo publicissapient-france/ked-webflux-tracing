@@ -8,18 +8,23 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 import java.util.stream.IntStream;
+
+import static fr.publicissapient.ked.webfluxtracing.util.Logging.logOnNext;
 
 @RestController
 public class Demo1Controller {
 
     private final Logger logger;
     private final DummyWebClient dummyWebClient;
+    private final SmartWebClient smartWebClient;
 
-    Demo1Controller(Logger logger, DummyWebClient dummyWebClient) {
+    Demo1Controller(Logger logger, DummyWebClient dummyWebClient, SmartWebClient smartWebClient) {
         this.logger = logger;
         this.dummyWebClient = dummyWebClient;
+        this.smartWebClient = smartWebClient;
     }
 
     Mono<ResponseEntity<Object>> accessTest1(@RequestParam(name = "id") Integer id) {
@@ -42,7 +47,7 @@ public class Demo1Controller {
     }
 
     @RequestMapping(value = "/test",
-    method = RequestMethod.GET)
+            method = RequestMethod.GET)
     Mono<ResponseEntity<Object>> accessTest2(@RequestParam(name = "id") Integer id) {
         MDC.put("correlationId", id.toString());
 
@@ -50,6 +55,14 @@ public class Demo1Controller {
         return performQuery(id)
                 .map(c -> ResponseEntity.ok().build())
                 .doAfterTerminate(MDC::clear);
+    }
+
+    @RequestMapping(value = "/testCorrelation", method = RequestMethod.GET)
+    Mono<ResponseEntity<Object>> testCorrelation(@RequestParam(name = "correlationId") Integer correlationId) {
+        return Mono.just(correlationId)
+                .doOnEach(logOnNext(id -> logger.info("TestCorrelation received correlationId {}", correlationId)))
+                .map(id -> ResponseEntity.ok().build())
+                .contextWrite(Context.of("correlationId", correlationId.toString()));
     }
 
     private Mono<String> performQuery(Integer id) {
